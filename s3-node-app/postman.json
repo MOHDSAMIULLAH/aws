@@ -1,0 +1,266 @@
+{
+  "info": {
+    "name": "Zeenat S3 Node API",
+    "description": "Postman collection for testing the S3 Node.js API deployed on EC2. Set the `base_url` variable to your EC2 public IP before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://<YOUR_EC2_PUBLIC_IP>",
+      "description": "Replace with your EC2 public IP or domain"
+    },
+    {
+      "key": "file_key",
+      "value": "uploads/sample.jpg",
+      "description": "S3 object key returned after upload"
+    }
+  ],
+  "item": [
+    {
+      "name": "General",
+      "item": [
+        {
+          "name": "Root — List Endpoints",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Returns all available API endpoints."
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Returns server health: uptime, memory usage, env, S3 bucket name."
+          }
+        }
+      ]
+    },
+    {
+      "name": "S3 File Operations",
+      "item": [
+        {
+          "name": "Upload File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.key) {",
+                  "  pm.collectionVariables.set('file_key', res.key);",
+                  "  console.log('Saved file_key:', res.key);",
+                  "}",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Response has key', () => pm.expect(res).to.have.property('key'));",
+                  "pm.test('Response has presigned url', () => pm.expect(res).to.have.property('url'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Select an image (jpg/png/webp) or PDF — max 5MB"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "upload"]
+            },
+            "description": "Upload a file to S3. Returns the S3 key and a presigned URL valid for 1 hour. The file_key variable is auto-saved for use in other requests."
+          }
+        },
+        {
+          "name": "List All Files",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Response has files array', () => pm.expect(res).to.have.property('files'));",
+                  "pm.test('Response has count', () => pm.expect(res).to.have.property('count'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/files",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files"]
+            },
+            "description": "Lists all files under the uploads/ prefix in the S3 bucket."
+          }
+        },
+        {
+          "name": "Get Presigned URL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Response has url', () => pm.expect(res).to.have.property('url'));",
+                  "pm.test('URL is a string', () => pm.expect(res.url).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/file/{{file_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "file", "{{file_key}}"]
+            },
+            "description": "Generates a presigned URL for a specific S3 file. Valid for 1 hour. Uses the file_key variable set after upload."
+          }
+        },
+        {
+          "name": "Delete File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Response confirms deletion', () => pm.expect(res.message).to.include('Deleted'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/file/{{file_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "file", "{{file_key}}"]
+            },
+            "description": "Deletes a file from S3 permanently. Uses the file_key variable."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Edge Cases",
+      "item": [
+        {
+          "name": "Upload — No File (expect 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "const res = pm.response.json();",
+                  "pm.test('Returns error message', () => pm.expect(res).to.have.property('error'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{base_url}}/api/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "upload"]
+            },
+            "description": "Should return 400 — no file provided."
+          }
+        },
+        {
+          "name": "Get File — Invalid Key (expect 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404 or 500', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([404, 500]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/file/uploads/does-not-exist.jpg",
+              "host": ["{{base_url}}"],
+              "path": ["api", "file", "uploads", "does-not-exist.jpg"]
+            },
+            "description": "Should return 404 — file does not exist in S3."
+          }
+        },
+        {
+          "name": "Unknown Route (expect 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "const res = pm.response.json();",
+                  "pm.test('Returns error message', () => pm.expect(res).to.have.property('error'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/unknown",
+              "host": ["{{base_url}}"],
+              "path": ["api", "unknown"]
+            },
+            "description": "Should return 404 — route does not exist."
+          }
+        }
+      ]
+    }
+  ]
+}

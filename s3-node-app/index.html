@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zeenat | S3 Static Site</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .badge {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      padding: 0.4rem 1rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.05em;
+    }
+
+    .badge span {
+      color: #f59e0b;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    h1 .highlight {
+      color: #f59e0b;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      text-align: center;
+      margin-bottom: 2.5rem;
+      max-width: 480px;
+    }
+
+    .cards {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1.2rem 1.5rem;
+      min-width: 160px;
+      text-align: center;
+    }
+
+    .card .icon {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .card .label {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 0.2rem;
+    }
+
+    .card .value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .endpoints {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      width: 100%;
+      max-width: 540px;
+      margin-bottom: 2rem;
+    }
+
+    .endpoints h3 {
+      font-size: 0.85rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1rem;
+    }
+
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #0f172a;
+    }
+
+    .endpoint:last-child {
+      border-bottom: none;
+    }
+
+    .method {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      min-width: 52px;
+      text-align: center;
+    }
+
+    .method.get  { background: #134e4a; color: #2dd4bf; }
+    .method.post { background: #1e3a5f; color: #60a5fa; }
+    .method.del  { background: #450a0a; color: #f87171; }
+
+    .path {
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+
+    .footer {
+      font-size: 0.8rem;
+      color: #475569;
+      text-align: center;
+    }
+
+    .footer a {
+      color: #f59e0b;
+      text-decoration: none;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="badge">
+    <span>&#9679;</span> Hosted on AWS S3 — Static Website
+  </div>
+
+  <h1>
+    Hello from <span class="highlight">S3</span>
+  </h1>
+
+  <p class="subtitle">
+    Static site deployed by <strong>Zeenat</strong> as part of AWS Phase 1 training.
+    Hosted on Amazon S3 with public bucket policy.
+  </p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="icon">&#9729;</div>
+      <div class="label">Platform</div>
+      <div class="value">AWS S3</div>
+    </div>
+    <div class="card">
+      <div class="icon">&#127757;</div>
+      <div class="label">Region</div>
+      <div class="value">ap-south-1</div>
+    </div>
+    <div class="card">
+      <div class="icon">&#128274;</div>
+      <div class="label">Status</div>
+      <div class="value"><span class="dot"></span>Live</div>
+    </div>
+  </div>
+
+  <div class="endpoints">
+    <h3>API Endpoints (EC2 Backend)</h3>
+    <div class="endpoint">
+      <span class="method get">GET</span>
+      <span class="path">/health</span>
+    </div>
+    <div class="endpoint">
+      <span class="method post">POST</span>
+      <span class="path">/api/upload</span>
+    </div>
+    <div class="endpoint">
+      <span class="method get">GET</span>
+      <span class="path">/api/files</span>
+    </div>
+    <div class="endpoint">
+      <span class="method get">GET</span>
+      <span class="path">/api/file/:key</span>
+    </div>
+    <div class="endpoint">
+      <span class="method del">DEL</span>
+      <span class="path">/api/file/:key</span>
+    </div>
+  </div>
+
+  <p class="footer">
+    AWS Training &mdash; Phase 1 &mdash; Built by <a href="#">Zeenat</a>
+  </p>
+
+</body>
+</html>
