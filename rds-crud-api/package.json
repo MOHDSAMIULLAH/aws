@@ -1,0 +1,19 @@
+{
+  "name": "rds-crud-api",
+  "version": "1.0.0",
+  "description": "Node.js CRUD API backed by AWS RDS PostgreSQL — deployed on EC2",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "migrate": "node src/db/migrate.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.18.0",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}

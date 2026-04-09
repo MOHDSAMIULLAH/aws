@@ -33,7 +33,7 @@ Think of AWS as a large office building:
 3. Enter two consecutive codes → Add MFA
 
 ### Step 2: Create Admin IAM User (`sam-admin`)
-1. IAM → Users → Create user
+1. IAM → Users → Create userPostgreSQL | 5432 | sg-04ac423ed7434acb4 / launch-wizard-3
 2. Username: `sam-admin`, enable console access
 3. Attach policy: `AdministratorAccess`
 4. Download the CSV (login URL + credentials)
