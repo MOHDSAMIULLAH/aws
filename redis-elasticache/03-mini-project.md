@@ -413,3 +413,269 @@ curl -X DELETE http://localhost:3000/cache
 3. Add `/products?category=Electronics` — cache per query param
 4. Use Redis Hash instead of String for product objects
 5. Connect to AWS ElastiCache by changing `REDIS_HOST` in `.env`
+
+---
+
+## Part 2: Deploy to AWS (ElastiCache + EC2 + RDS)
+
+Move the exact same app to AWS — swap `localhost` env vars for real AWS endpoints.
+
+### Target Architecture
+
+```
+Internet
+   │
+   ▼
+EC2 (Node.js API)  ──cache hit──►  ElastiCache (Redis)
+        │                                  │
+        │ cache miss                       │ store result
+        ▼                                  │
+   RDS (PostgreSQL) ──────────────────────►
+```
+
+All three live inside a **VPC**. Only EC2 has a public IP; RDS and ElastiCache are private.
+
+---
+
+### AWS Step 1 — Create a VPC (or use default)
+
+> Skip if you already have a VPC with public + private subnets.
+
+1. Go to **VPC → Your VPCs → Create VPC**
+2. Name: `elasticache-demo-vpc`
+3. IPv4 CIDR: `10.0.0.0/16`
+4. Create **2 public subnets** (for EC2):
+   - `10.0.1.0/24` in `us-east-1a`
+   - `10.0.2.0/24` in `us-east-1b`
+5. Create **2 private subnets** (for RDS + ElastiCache):
+   - `10.0.3.0/24` in `us-east-1a`
+   - `10.0.4.0/24` in `us-east-1b`
+6. Attach an **Internet Gateway** to the VPC
+7. Add route `0.0.0.0/0 → IGW` to the **public route table** only
+
+---
+
+### AWS Step 2 — Create Security Groups
+
+Create **3 security groups** in your VPC:
+
+#### SG-1: `sg-ec2`
+| Direction | Type  | Port | Source    |
+|-----------|-------|------|-----------|
+| Inbound   | SSH   | 22   | Your IP   |
+| Inbound   | HTTP  | 3000 | 0.0.0.0/0 |
+| Outbound  | All   | All  | 0.0.0.0/0 |
+
+#### SG-2: `sg-redis`
+| Direction | Type        | Port | Source   |
+|-----------|-------------|------|----------|
+| Inbound   | Custom TCP  | 6379 | sg-ec2   |
+| Outbound  | All         | All  | 0.0.0.0/0 |
+
+#### SG-3: `sg-rds`
+| Direction | Type        | Port | Source   |
+|-----------|-------------|------|----------|
+| Inbound   | PostgreSQL  | 5432 | sg-ec2   |
+| Outbound  | All         | All  | 0.0.0.0/0 |
+
+**Key rule:** Redis and RDS only accept traffic from EC2's security group — never from the internet.
+
+---
+
+### AWS Step 3 — Create ElastiCache (Redis)
+
+1. Go to **ElastiCache → Get Started → Create cluster**
+2. Choose **Redis OSS**
+3. Configuration:
+   - Cluster mode: **Disabled** (simpler for this project)
+   - Name: `demo-redis`
+   - Node type: `cache.t3.micro` (Free Tier eligible)
+   - Number of replicas: `0` (just primary for dev)
+4. **Subnet group:**
+   - Create new → name: `redis-subnet-group`
+   - Select your **private subnets** (`10.0.3.0/24`, `10.0.4.0/24`)
+5. **Security:** attach `sg-redis`
+6. Disable encryption in transit (for simplicity in dev)
+7. Click **Create**
+8. Wait ~5 mins. Copy the **Primary Endpoint** (looks like `demo-redis.xxxxx.cache.amazonaws.com`)
+
+---
+
+### AWS Step 4 — Create RDS (PostgreSQL)
+
+1. Go to **RDS → Create database**
+2. Engine: **PostgreSQL**, version 15
+3. Template: **Free tier**
+4. Settings:
+   - DB name: `shopdb`
+   - Username: `postgres`
+   - Password: `yourpassword`
+5. Instance: `db.t3.micro`
+6. Storage: 20 GiB gp2
+7. **Connectivity:**
+   - VPC: your VPC
+   - Subnet group: create new with private subnets
+   - Public access: **No**
+   - Security group: `sg-rds`
+8. Click **Create database**
+9. Wait ~5 mins. Copy the **Endpoint** (looks like `shopdb.xxxxx.us-east-1.rds.amazonaws.com`)
+
+---
+
+### AWS Step 5 — Launch EC2 (Node.js App)
+
+1. Go to **EC2 → Launch Instance**
+2. AMI: **Amazon Linux 2023**
+3. Type: `t2.micro`
+4. Network: your VPC, **public subnet**, auto-assign public IP: **Yes**
+5. Security group: `sg-ec2`
+6. Key pair: create or use existing
+7. Click **Launch**
+
+**SSH into EC2:**
+```bash
+ssh -i your-key.pem ec2-user@<EC2_PUBLIC_IP>
+```
+
+**Install Node.js and Git:**
+```bash
+# Install Node.js 20
+curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+sudo dnf install -y nodejs git
+
+# Verify
+node -v && npm -v
+```
+
+---
+
+### AWS Step 6 — Seed RDS from EC2
+
+EC2 is inside the VPC so it can reach RDS privately.
+
+```bash
+# Install psql client
+sudo dnf install -y postgresql15
+
+# Connect to RDS (use your RDS endpoint)
+psql -h shopdb.xxxxx.us-east-1.rds.amazonaws.com -U postgres -d postgres
+
+# Inside psql:
+CREATE DATABASE shopdb;
+\c shopdb
+
+CREATE TABLE products (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  price NUMERIC NOT NULL,
+  category TEXT,
+  stock INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO products (name, price, category, stock)
+SELECT
+  'Product ' || i,
+  (random() * 100 + 10)::NUMERIC(10,2),
+  CASE (i % 3)
+    WHEN 0 THEN 'Electronics'
+    WHEN 1 THEN 'Clothing'
+    ELSE 'Books'
+  END,
+  floor(random() * 200)::INT
+FROM generate_series(1, 10) AS i;
+
+\q
+```
+
+---
+
+### AWS Step 7 — Deploy App on EC2
+
+```bash
+# Clone or copy project
+git clone https://github.com/your-repo/redis-cache-demo.git
+cd redis-cache-demo
+npm install
+```
+
+**Create `.env` with AWS endpoints:**
+```env
+PORT=3000
+
+# RDS endpoint
+DB_HOST=shopdb.xxxxx.us-east-1.rds.amazonaws.com
+DB_PORT=5432
+DB_NAME=shopdb
+DB_USER=postgres
+DB_PASSWORD=yourpassword
+
+# ElastiCache primary endpoint (no port in the hostname)
+REDIS_HOST=demo-redis.xxxxx.cache.amazonaws.com
+REDIS_PORT=6379
+CACHE_TTL=60
+```
+
+**Start the app:**
+```bash
+node src/index.js
+# [Redis] Connected
+# Server running on port 3000
+```
+
+---
+
+### AWS Step 8 — Test from Your Machine
+
+```bash
+# Replace with your EC2 public IP
+EC2=http://<EC2_PUBLIC_IP>:3000
+
+# Cache miss (hits RDS)
+curl $EC2/products/1
+# { "source": "db", "latencyMs": 55, ... }
+
+# Cache hit (hits ElastiCache)
+curl $EC2/products/1
+# { "source": "cache", "latencyMs": 3, ... }
+
+# Stats
+curl $EC2/cache/stats
+# { "hits": "1", "misses": "1", "hitRate": "50.0%" }
+```
+
+---
+
+### AWS Cost Reminder (Free Tier)
+
+| Service      | Free Tier           | Beyond Free Tier     |
+|--------------|---------------------|----------------------|
+| EC2 t2.micro | 750 hrs/month       | ~$0.0116/hr          |
+| RDS t3.micro | 750 hrs/month       | ~$0.017/hr           |
+| ElastiCache t3.micro | Not free    | ~$0.017/hr           |
+
+> ElastiCache has **no Free Tier** — delete the cluster after practice to avoid charges.
+
+---
+
+### Cleanup (Important!)
+
+```bash
+# Order matters — delete dependents first
+1. ElastiCache → Delete cluster "demo-redis"
+2. RDS → Delete database "shopdb" (no final snapshot needed for dev)
+3. EC2 → Terminate instance
+4. VPC → Delete (will also remove subnets, route tables, IGW)
+```
+
+---
+
+### Local → AWS: What Changed
+
+| Config      | Local              | AWS                                        |
+|-------------|--------------------|--------------------------------------------|
+| `REDIS_HOST`| `localhost`        | `demo-redis.xxxxx.cache.amazonaws.com`     |
+| `DB_HOST`   | `localhost`        | `shopdb.xxxxx.us-east-1.rds.amazonaws.com` |
+| App code    | No change          | No change                                  |
+
+**That's it. Zero code changes — only `.env` updates.**

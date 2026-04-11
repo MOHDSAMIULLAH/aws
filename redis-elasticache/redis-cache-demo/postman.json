@@ -1,0 +1,131 @@
+{
+  "info": {
+    "name": "Redis Cache Demo",
+    "description": "Test all endpoints for the redis-cache-demo project. Watch source: 'db' vs 'cache' and latencyMs in responses.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:3000",
+      "description": "Change to http://<EC2_PUBLIC_IP>:3000 when running on AWS"
+    }
+  ],
+  "item": [
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/products",
+            "description": "First call → source: 'db'. Repeat → source: 'cache'. Watch latencyMs drop."
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/products/1",
+            "description": "First call hits PostgreSQL (~40-80ms). Second call hits Redis (~1-3ms)."
+          }
+        },
+        {
+          "name": "Get Product by ID (cache miss after update)",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/products/1",
+            "description": "Run this after PUT /products/1 — cache was invalidated so source will be 'db' again."
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/products",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Wireless Headphones\",\n  \"price\": 79.99,\n  \"category\": \"Electronics\",\n  \"stock\": 50\n}"
+            },
+            "description": "Creates a new product and invalidates the 'products:all' cache key."
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "url": "{{BASE_URL}}/products/1",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Product\",\n  \"price\": 99.99,\n  \"category\": \"Electronics\",\n  \"stock\": 25\n}"
+            },
+            "description": "Updates product and invalidates both 'product:1' and 'products:all' cache keys."
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/products/10",
+            "description": "Deletes product and removes its cache entry."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cache",
+      "item": [
+        {
+          "name": "Cache Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/cache/stats",
+            "description": "Returns hits, misses, hitRate, evictions from Redis INFO stats."
+          }
+        },
+        {
+          "name": "Cache Keys",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/cache/keys",
+            "description": "Lists all keys currently stored in Redis (e.g. product:1, products:all)."
+          }
+        },
+        {
+          "name": "Flush Cache",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/cache",
+            "description": "Flushes all Redis keys. Next GET will be a cache miss."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/health",
+            "description": "Shows Redis connection status and current DB/Redis host config."
+          }
+        }
+      ]
+    }
+  ]
+}

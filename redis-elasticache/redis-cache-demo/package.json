@@ -1,0 +1,25 @@
+{
+  "name": "redis-cache-demo",
+  "version": "1.0.0",
+  "description": "Node.js REST API with Redis caching and PostgreSQL — deployable to AWS ElastiCache + RDS",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.30.10",
+    "express": "^4.19.2",
+    "ioredis": "^5.4.1",
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.21.4",
+    "nodemon": "^3.1.4"
+  }
+}
