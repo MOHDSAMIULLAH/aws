@@ -1,0 +1,19 @@
+{
+  "name": "todo-serverless-api",
+  "version": "1.0.0",
+  "description": "Serverless REST API with Lambda and API Gateway",
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.1000.0"
+  },
+  "devDependencies": {
+    "aws-sam-cli": "^1.50.0"
+  },
+  "scripts": {
+    "build": "sam build",
+    "deploy": "sam deploy --guided",
+    "redeploy": "sam deploy",
+    "local": "sam local start-api"
+  }
+}

@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# AWS CLI installation (downloaded binaries)
+aws/
+awscliv2.zip
+
+# SAM CLI installation (downloaded binaries)
+sam-installation/
+sam-installation.zip
+
+# SAM build artifacts
+.aws-sam/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Misc
+*.zip
+*.log
