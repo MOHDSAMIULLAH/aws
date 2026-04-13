@@ -1,0 +1,14 @@
+{
+  "name": "sqs-order-processing",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "producer": "node producer/index.js",
+    "consumer": "node consumer/worker.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sqs": "^3.600.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
