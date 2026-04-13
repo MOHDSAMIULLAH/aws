@@ -228,6 +228,48 @@ Outputs:
     Value: !GetAtt HelloWorldFunction.Arn
 ```
 
+### Prerequisites: AWS CLI + Credentials Setup
+
+Before running SAM commands, ensure AWS CLI is configured.
+
+#### Fix: `sam` not recognized
+SAM CLI not installed or terminal session is stale.
+- Download: https://github.com/aws/aws-sam-cli/releases/latest → `AWS_SAM_CLI_64_PY3.msi`
+- After install, **restart the terminal**
+- Verify: `sam --version`
+
+#### Fix: `Error: Unable to locate credentials`
+AWS CLI has no credentials configured. Do NOT use root account for CLI.
+
+**Step 1 — Create IAM user (one-time setup):**
+1. IAM → Users → **Create user**
+2. Username: `sam-cli-user`
+3. Attach policy: `AdministratorAccess` (fine for personal learning)
+4. Create user
+
+**Step 2 — Generate access key:**
+1. Click the user → **Security credentials** tab
+2. Access keys → **Create access key**
+3. Select **Command Line Interface (CLI)** → Create
+4. Copy both keys (secret shown only once)
+
+**Step 3 — Configure CLI:**
+```bash
+aws configure
+# AWS Access Key ID: <paste key>
+# AWS Secret Access Key: <paste secret>
+# Default region: us-east-1
+# Default output format: json
+```
+
+**Verify credentials work:**
+```bash
+aws sts get-caller-identity
+# Returns: account ID, user ARN — you're good to go
+```
+
+---
+
 ### Deploy with SAM
 
 ```bash

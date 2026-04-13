@@ -1,0 +1,103 @@
+{
+  "info": {
+    "name": "Todo Serverless API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/dev",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "user-123",
+      "type": "string"
+    },
+    {
+      "key": "todoId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "List Todos",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/todos?userId={{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["todos"],
+          "query": [
+            { "key": "userId", "value": "{{userId}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Todo by ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/todos/{{todoId}}?userId={{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["todos", "{{todoId}}"],
+          "query": [
+            { "key": "userId", "value": "{{userId}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Todo",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/todos",
+          "host": ["{{baseUrl}}"],
+          "path": ["todos"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"user-123\",\n  \"title\": \"Learn AWS SAM\",\n  \"description\": \"Deploy serverless API using SAM\",\n  \"completed\": false\n}"
+        }
+      }
+    },
+    {
+      "name": "Update Todo",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/todos/{{todoId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["todos", "{{todoId}}"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"user-123\",\n  \"title\": \"Learn AWS SAM\",\n  \"description\": \"Deploy serverless API using SAM\",\n  \"completed\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "Delete Todo",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/todos/{{todoId}}?userId={{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["todos", "{{todoId}}"],
+          "query": [
+            { "key": "userId", "value": "{{userId}}" }
+          ]
+        }
+      }
+    }
+  ]
+}
