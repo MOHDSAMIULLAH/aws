@@ -9,7 +9,7 @@ app.use(express.json());
 // Used by ECS / ALB to verify the container is alive
 app.get('/health', (req, res) => {
   res.json({
-    status: 'healthy hai',
+    status: 'healthy',
     app: APP_NAME,
     version: process.env.APP_VERSION || '1.0.0',
     uptime: `${process.uptime().toFixed(2)}s`,
