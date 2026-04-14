@@ -60,11 +60,11 @@ docker history docker-cicd-app:1.0
 # -p 3000:3000  = map host port 3000 → container port 3000
 # --name    = give the container a friendly name
 # -e        = set environment variable
-docker run -d \
-  -p 3000:3000 \
-  --name my-api \
-  -e APP_NAME=docker-cicd-app \
-  -e NODE_ENV=production \
+docker run -d `
+  -p 3000:3000 `
+  --name my-api `
+  -e APP_NAME=docker-cicd-app `
+  -e NODE_ENV=production `
   docker-cicd-app:1.0
 ```
 
