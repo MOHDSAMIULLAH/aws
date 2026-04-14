@@ -24,11 +24,11 @@ on:
   workflow_dispatch:                          # allow manual trigger from GitHub UI
 
 env:
-  AWS_REGION:       ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY:   ${{ secrets.ECR_REPOSITORY }}
-  ECS_CLUSTER:      ${{ secrets.ECS_CLUSTER }}
-  ECS_SERVICE:      ${{ secrets.ECS_SERVICE }}
-  CONTAINER_NAME:   ${{ secrets.CONTAINER_NAME }}
+  AWS_REGION:       ${{ vars.AWS_REGION }}
+  ECR_REPOSITORY:   ${{ vars.ECR_REPOSITORY }}
+  ECS_CLUSTER:      ${{ vars.ECS_CLUSTER }}
+  ECS_SERVICE:      ${{ vars.ECS_SERVICE }}
+  CONTAINER_NAME:   ${{ vars.CONTAINER_NAME }}
 
 jobs:
   # ── Job 1: Run tests before building ─────────────────────────────────────
@@ -75,7 +75,7 @@ jobs:
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-region:            ${{ vars.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -115,13 +115,13 @@ jobs:
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-region:            ${{ vars.AWS_REGION }}
 
       # Download the current task definition JSON so we can patch it
       - name: Download current ECS task definition
         run: |
           aws ecs describe-task-definition \
-            --task-definition ${{ secrets.ECS_TASK_DEF_ARN }} \
+            --task-definition ${{ vars.ECS_TASK_DEF_ARN }} \
             --query taskDefinition \
             > task-def.json
 
