@@ -26,7 +26,7 @@ Each job only runs if the previous one passes. A failed test blocks the deploy.
 ```bash
 aws ecr create-repository \
   --repository-name docker-cicd-app \
-  --region us-east-1
+  --region ap-south-1
 ```
 
 Output includes your registry URI:
