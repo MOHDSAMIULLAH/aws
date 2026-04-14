@@ -1,0 +1,22 @@
+# Dependencies installed by npm — never copy these into the image
+node_modules
+
+# Git history is irrelevant inside the container
+.git
+.gitignore
+
+# Local env files — secrets must come from env vars at runtime
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor config
+.vscode
+.idea

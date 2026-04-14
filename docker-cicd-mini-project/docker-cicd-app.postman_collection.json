@@ -1,0 +1,56 @@
+{
+  "info": {
+    "name": "docker-cicd-app",
+    "description": "Docker CI/CD mini project — Express API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Root",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/",
+        "description": "API info and available endpoints"
+      }
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health",
+        "description": "Used by ECS/ALB to verify the container is alive"
+      }
+    },
+    {
+      "name": "List Products",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/products",
+        "description": "Returns all products"
+      }
+    },
+    {
+      "name": "Get Product by ID",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/products/1",
+        "description": "Returns a single product. Change 1 to 2 or 3 to test other products."
+      }
+    },
+    {
+      "name": "Get Product — Not Found",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/products/999",
+        "description": "Returns 404 — product does not exist"
+      }
+    }
+  ]
+}

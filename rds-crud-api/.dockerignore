@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+.env
+.env.*
+*.postman_collection.json
+README.md
+TRAINING.md
+deploy*.sh
+ecosystem.config.js
+.git
+.gitignore

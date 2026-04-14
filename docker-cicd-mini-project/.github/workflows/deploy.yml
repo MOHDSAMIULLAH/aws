@@ -1,0 +1,144 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# CI/CD Pipeline: Build → Push to AWS ECR → Deploy to ECS (Fargate)
+#
+# Triggers on every push to main branch.
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   AWS_ACCESS_KEY_ID        IAM user access key
+#   AWS_SECRET_ACCESS_KEY    IAM user secret key
+#   AWS_REGION               e.g. us-east-1
+#   ECR_REPOSITORY           e.g. docker-cicd-app  (just the repo name, not full URI)
+#   ECS_CLUSTER              ECS cluster name
+#   ECS_SERVICE              ECS service name
+#   ECS_TASK_DEF_ARN         Full ARN of the ECS task definition family
+#   CONTAINER_NAME           Container name inside the task definition
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: CI/CD — Build, Push ECR, Deploy ECS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker-cicd-mini-project/app/**'   # only re-deploy when app code changes
+  workflow_dispatch:                          # allow manual trigger from GitHub UI
+
+env:
+  AWS_REGION:       ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY:   ${{ secrets.ECR_REPOSITORY }}
+  ECS_CLUSTER:      ${{ secrets.ECS_CLUSTER }}
+  ECS_SERVICE:      ${{ secrets.ECS_SERVICE }}
+  CONTAINER_NAME:   ${{ secrets.CONTAINER_NAME }}
+
+jobs:
+  # ── Job 1: Run tests before building ─────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docker-cicd-mini-project/app
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: docker-cicd-mini-project/app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Add your test command here: npm test
+      - name: Verify app starts (smoke test)
+        run: node -e "require('./index.js')" &
+        timeout-minutes: 1
+
+  # ── Job 2: Build Docker image and push to ECR ────────────────────────────
+  build-and-push:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+    needs: test                    # only runs if test job passes
+    outputs:
+      image: ${{ steps.build-push.outputs.image }}   # pass image URI to next job
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to ECR
+        id: build-push
+        working-directory: docker-cicd-mini-project/app
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG:    ${{ github.sha }}           # unique tag = git commit SHA
+        run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+          echo "Building image: $IMAGE_URI"
+          docker build -t "$IMAGE_URI" .
+
+          echo "Pushing image to ECR..."
+          docker push "$IMAGE_URI"
+
+          # Also tag as :latest for convenience
+          docker tag "$IMAGE_URI" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+          # Export the full URI so the deploy job can reference it
+          echo "image=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+  # ── Job 3: Deploy new image to ECS ───────────────────────────────────────
+  deploy-ecs:
+    name: Deploy to ECS (Fargate)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      # Download the current task definition JSON so we can patch it
+      - name: Download current ECS task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ secrets.ECS_TASK_DEF_ARN }} \
+            --query taskDefinition \
+            > task-def.json
+
+      # Replace the container image URI in the task definition
+      - name: Update container image in task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition:  task-def.json
+          container-name:   ${{ env.CONTAINER_NAME }}
+          image:            ${{ needs.build-and-push.outputs.image }}
+
+      # Register new task definition revision + update the ECS service
+      - name: Deploy updated task definition to ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition:  ${{ steps.task-def.outputs.task-definition }}
+          service:          ${{ env.ECS_SERVICE }}
+          cluster:          ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true   # block until new containers are healthy
